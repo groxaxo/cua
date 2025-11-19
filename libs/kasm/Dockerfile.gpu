@@ -26,7 +26,21 @@ RUN apt-get update && apt-get install -y \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python 3.12 (Ubuntu 24.04 Noble default) and development tools
+# Add NVIDIA package repository for Ubuntu 24.04
+RUN wget -qO - https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/3bf863cc.pub | apt-key add - && \
+    echo "deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64 /" > /etc/apt/sources.list.d/cuda.list
+
+# Install CUDA 12.6 runtime and development tools for Ampere GPUs
+# Optimized for compute capabilities 8.0 (A100), 8.6 (RTX 3000/4000), 8.9 (RTX 4090), 9.0 (H100)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    cuda-toolkit-12-6 \
+    libcudnn9-cuda-12 \
+    libcublas-12-6 \
+    libnccl2 \
+    nvidia-gds-12-6 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python 3.12 and development tools
 RUN apt-get update && apt-get install -y \
     python3.12 \
     python3.12-dev \
@@ -39,24 +53,8 @@ RUN apt-get update && apt-get install -y \
     xclip \
     && rm -rf /var/lib/apt/lists/*
 
-# Install NVIDIA CUDA runtime for Ampere GPU support (optional, for GPU-enabled builds)
-# This adds GPU acceleration support for PyTorch and other ML frameworks
-# Comment out or remove these lines for CPU-only builds
-ARG INSTALL_GPU_SUPPORT=false
-RUN if [ "$INSTALL_GPU_SUPPORT" = "true" ]; then \
-    apt-get update && \
-    apt-get install -y --no-install-recommends \
-        nvidia-utils-550 \
-        nvidia-cuda-toolkit-12-6 \
-    && rm -rf /var/lib/apt/lists/*; \
-    fi
-
-# Set environment variables for optimal Ampere GPU performance
-ENV CUDA_DEVICE_ORDER=PCI_BUS_ID
-ENV PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
-ENV TORCH_CUDA_ARCH_LIST="8.0;8.6;8.9;9.0"
-
-RUN pip install cua-computer-server
+# Install cua-computer-server with GPU support
+RUN pip install --no-cache-dir cua-computer-server
 
 # Install Firefox
 ENV DEBIAN_FRONTEND=noninteractive \
@@ -78,6 +76,19 @@ RUN usermod -aG sudo kasm-user
 RUN echo "kasm-user ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
 ######### End Customizations ###########
+
+# Set CUDA environment variables for optimal Ampere GPU performance
+ENV CUDA_HOME=/usr/local/cuda-12.6
+ENV PATH=${CUDA_HOME}/bin:${PATH}
+ENV LD_LIBRARY_PATH=${CUDA_HOME}/lib64:${LD_LIBRARY_PATH}
+ENV CUDA_DEVICE_ORDER=PCI_BUS_ID
+ENV PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+ENV TORCH_CUDA_ARCH_LIST="8.0;8.6;8.9;9.0"
+ENV CUDA_VISIBLE_DEVICES=0
+
+# Ampere-specific optimizations
+ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
+ENV NVIDIA_REQUIRE_CUDA="cuda>=12.0"
 
 RUN chown 1000:0 $HOME
 RUN $STARTUPDIR/set_user_permission.sh $HOME

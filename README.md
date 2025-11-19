@@ -100,6 +100,7 @@ Core utilities for Cua
 - [Clone a starter template and run the code in <1 min](https://github.com/trycua/agent-template)
 - [Get started with the Cua SDKs](https://cua.ai/docs/quickstart-devs)
 - [Get started with the Cua CLI](https://cua.ai/docs/quickstart-cli)
+- [GPU Setup for Ubuntu 24.04 with Ampere GPUs](docs/GPU_SETUP.md)
 
 # Agent SDK
 

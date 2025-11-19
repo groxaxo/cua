@@ -1,0 +1,106 @@
+version: '3.8'
+
+services:
+  cua-ubuntu-gpu:
+    build:
+      context: .
+      dockerfile: Dockerfile.gpu
+    image: cua-ubuntu:gpu-latest
+    container_name: cua-gpu-desktop
+    
+    # GPU configuration
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu, compute, utility]
+    
+    # Runtime configuration
+    runtime: nvidia
+    environment:
+      # VNC configuration
+      - VNC_PW=password
+      - VNCOPTIONS=-disableBasicAuth
+      
+      # NVIDIA GPU environment variables
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility,graphics
+      
+      # CUDA configuration
+      - CUDA_VISIBLE_DEVICES=0
+      - CUDA_DEVICE_ORDER=PCI_BUS_ID
+      
+      # PyTorch optimizations for Ampere
+      - PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+      - TORCH_CUDA_ARCH_LIST=8.0;8.6;8.9;9.0
+      - TORCH_CUDNN_V8_API_ENABLED=1
+    
+    # Port mappings
+    ports:
+      - "6901:6901"  # VNC web interface
+      - "8000:8000"  # Computer Server API
+    
+    # Shared memory for GPU operations
+    shm_size: '2gb'
+    
+    # Volume mounts (optional)
+    volumes:
+      - cua-gpu-home:/home/kasm-user
+      - ./shared:/home/kasm-user/shared
+    
+    # Network configuration
+    networks:
+      - cua-network
+    
+    # Restart policy
+    restart: unless-stopped
+    
+    # Resource limits (adjust based on your system)
+    mem_limit: 16g
+    cpus: 4
+
+  # Optional: Multiple GPU containers for parallel processing
+  cua-ubuntu-gpu-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.gpu
+    image: cua-ubuntu:gpu-latest
+    
+    deploy:
+      replicas: 0  # Set to desired number of workers
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu, compute, utility]
+    
+    runtime: nvidia
+    environment:
+      - VNC_PW=password
+      - VNCOPTIONS=-disableBasicAuth
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - CUDA_DEVICE_ORDER=PCI_BUS_ID
+      - PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+    
+    ports:
+      - "6902-6910:6901"  # VNC web interface (mapped dynamically)
+      - "8001-8010:8000"  # Computer Server API (mapped dynamically)
+    
+    shm_size: '2gb'
+    networks:
+      - cua-network
+    restart: unless-stopped
+    mem_limit: 12g
+    cpus: 2
+
+volumes:
+  cua-gpu-home:
+    driver: local
+
+networks:
+  cua-network:
+    driver: bridge
