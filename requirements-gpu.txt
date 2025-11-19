@@ -1,0 +1,25 @@
+# CUA GPU Requirements for Ubuntu 24.04 with Ampere GPUs
+# Install PyTorch with CUDA 12.1 support
+# Usage: pip install -r requirements-gpu.txt
+
+# PyTorch with CUDA 12.1 support (optimized for Ampere GPUs)
+--index-url https://download.pytorch.org/whl/cu121
+torch>=2.2.0
+torchvision>=0.17.0
+torchaudio>=2.2.0
+
+# Core CUA packages
+cua-agent[all]
+cua-computer
+cua-som
+cua-computer-server
+cua-core
+cua-mcp-server
+
+# Acceleration libraries
+accelerate>=1.0.0
+transformers>=4.54.0
+
+# Additional GPU-optimized packages
+nvidia-ml-py3  # NVIDIA Management Library Python bindings
+gputil  # GPU utilization monitoring
