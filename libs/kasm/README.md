@@ -36,6 +36,21 @@ docker buildx build \
 
 For NVIDIA Ampere GPU support (A100, RTX 3000/4000/5000 series, H100), use the GPU-specific Dockerfile:
 
+##### Using the build script (recommended)
+
+```bash
+# Build GPU image locally
+./build-gpu.sh
+
+# Build and push to registry
+./build-gpu.sh --registry trycua --push
+
+# Build CPU-only multi-arch image
+./build-gpu.sh --cpu-only --tag latest --push
+```
+
+##### Manual build commands
+
 ```bash
 # Build with GPU support (x86_64 only)
 docker buildx build \
